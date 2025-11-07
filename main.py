@@ -1,4 +1,4 @@
-from geting_mems import MEM_PARS
+from parsers import MEM_PARS
 
 
 with open("ru_50k.txt", "r") as f:
