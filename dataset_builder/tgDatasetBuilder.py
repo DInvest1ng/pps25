@@ -114,7 +114,7 @@ class TGDatasetBuilder:
 if __name__ == "__main__":
     cfg = {
         'json_file_path': 'result.json',
-        'output_csv_path': 'vk_dataset.csv',
+        'output_csv_path': 'tg_dataset.csv',
         'image_search_path': '.'
     }
     
