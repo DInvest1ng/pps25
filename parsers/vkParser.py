@@ -31,7 +31,7 @@ class VKParser:
 
         self.min_image_size_kb: float = float(config.get("min_image_size_kb", 2))
         self.scroll_pause_time: float = float(config.get("scroll_pause_time", 7))
-        self.max_scrolls: int = int(config.get("max_scrolls", 1200))
+        self.max_scrolls: int = int(config.get("max_scrolls", 3))
         self.chrome_args: List[str] = config.get("chrome_args", ["--window-size=1400,1000", "--no-sandbox", "--disable-dev-shm-usage", "--headless"]) or []
         self.output_dir: str = config.get("output_dir", ".")
 
