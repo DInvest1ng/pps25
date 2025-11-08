@@ -1,0 +1,52 @@
+# Basic configuration for CLIP retrieval pipeline
+
+# Dataset config
+# For test: foldl/rumeme-desc with columns: image, text
+# Replace with your production dataset later.
+dataset:
+  name: foldl/rumeme-desc
+  split: train
+  image_column: image
+  text_column: text
+  # Optional: path to local dataset (folder or HF dataset path). If set, overrides name
+  local_path: null
+
+# Model config
+model:
+
+  # Model repo: either a direct repo (like ai-forever/ruclip-vit-base-patch32-224)
+  # or a base repo with subfolders (like ai-forever/ru-clip)
+  repo_id: ai-forever/ruclip-vit-base-patch32-224
+  # Subfolder to pick the specific checkpoint (set null if repo_id is a direct model repo):
+  subfolder: null
+  # Optional alternative processor repo (set null to try model repo first)
+  processor_repo: openai/clip-vit-base-patch32
+  # Path to fine-tuned model (set null to use repo_id model, or path like "outputs/ruclip-base32/epoch-3")
+  fine_tuned_path: outputs/ruclip-base32/best
+  
+
+  
+# Training config
+training:
+  output_dir: outputs/ruclip-base32
+  epochs: 3  # Можно увеличить на Colab при наличии времени
+  batch_size: 8  # Уменьшено для T4 (16GB памяти). Можно увеличить до 12-16 если памяти хватает
+  learning_rate: 5.0e-6
+  weight_decay: 0.01
+  warmup_steps: 500  # можно подстроить под размер датасета
+  grad_accum_steps: 2  # Увеличено для эффективного batch_size=16 (8*2)
+  mixed_precision: fp16  # Colab T4 поддерживает fp16
+  num_workers: 2  # В Colab обычно 0 или 2
+  gradient_checkpointing: true  # Включено для экономии памяти на T4
+  seed: 42
+  # Save best model based on loss
+  save_best: true
+
+# Index config
+index:
+  out_dir: index
+  index_file: memes.faiss
+  meta_file: memes_meta.jsonl
+  top_k: 10
+  batch_size: 32  # Размер батча для обработки изображений при построении индекса
+
