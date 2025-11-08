@@ -302,6 +302,7 @@ class VKParser:
 if __name__ == '__main__':
     cfg = {
         "urls": ["https://vk.com/poiskmemow", "https://vk.com/textmeme"],
+        "max_scrolls": 3000,
     }
     parser = VKParser(cfg)
     parser.run()
