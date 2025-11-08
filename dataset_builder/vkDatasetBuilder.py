@@ -1,9 +1,6 @@
 """
 Usage:
-    python build_dataset_with_images_clean.py \
-        --images_dir /path/to/images_pub \
-        --jsons_dir /path/to/jsons_pub \
-        --out dataset.csv
+    python build_dataset_with_images_clean.py
 
 Produces CSV with columns:
     image (base64), description, width, height, image_link
@@ -13,7 +10,6 @@ import json
 import base64
 import re
 from pathlib import Path
-import argparse
 from typing import Optional, Dict, Any, List
 import pandas as pd
 
@@ -27,11 +23,10 @@ IMAGE_EXTS = [".jpg", ".jpeg", ".png", ".gif"]
 
 
 class VKDatasetBuilder:
-    def __init__(self, config):
-        self.config = config
-        self.images_dir = Path(config.images_dir)
-        self.jsons_dir = Path(config.jsons_dir)
-        self.out_path = Path(config.out)
+    def __init__(self):
+        self.images_dir = Path("images_vk")
+        self.jsons_dir = Path("jsons_vk")
+        self.out_path = Path("vk_dataset.csv")
 
     def encode_image_to_base64(self, image_path: Path) -> Optional[str]:
         """Конвертирование изображение в base-64."""
@@ -146,13 +141,7 @@ class VKDatasetBuilder:
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--images_dir", required=True, help="Path to images_{pub_name}")
-    parser.add_argument("--jsons_dir", required=True, help="Path to jsons_{pub_name}")
-    parser.add_argument("--out", default="dataset.csv", help="Output CSV file")
-    cfg = parser.parse_args()
-    
-    builder = VKDatasetBuilder(cfg)
+    builder = VKDatasetBuilder()
     builder.build()
 
 

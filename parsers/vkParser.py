@@ -202,7 +202,7 @@ class VKParser:
                 safe_pid = self.safe_name(pid)
                 filename = f"{safe_pid}_1{ext}"
 
-                images_dir = os.path.join(self.output_dir, f"images_{pub_name}")
+                images_dir = os.path.join(self.output_dir, f"images_vk")
                 os.makedirs(images_dir, exist_ok=True)
                 path = os.path.join(images_dir, filename)
 
@@ -248,8 +248,8 @@ class VKParser:
         community_raw = url.rstrip('/').split('/')[-1] or url
         pub_name = self.safe_name(community_raw)
 
-        images_dir = os.path.join(self.output_dir, f"images_{pub_name}")
-        json_dir = os.path.join(self.output_dir, f"jsons_{pub_name}")
+        images_dir = os.path.join(self.output_dir, f"images_vk")
+        json_dir = os.path.join(self.output_dir, f"jsons_vk")
         os.makedirs(images_dir, exist_ok=True)
         os.makedirs(json_dir, exist_ok=True)
 
@@ -302,7 +302,7 @@ class VKParser:
 if __name__ == '__main__':
     cfg = {
         "urls": ["https://vk.com/poiskmemow", "https://vk.com/textmeme"],
-        "max_scrolls": 3000,
+        "max_scrolls": 2,
     }
     parser = VKParser(cfg)
     parser.run()
