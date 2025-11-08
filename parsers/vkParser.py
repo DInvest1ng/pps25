@@ -17,7 +17,7 @@ import requests
 from typing import List, Dict, Any, Optional
 
 
-class VKParser:
+class VK:
     """Парсер VK для сбора постов, изображений и информации о постах."""
 
     def __init__(self, config: Dict[str, Any]):
@@ -32,7 +32,18 @@ class VKParser:
         self.min_image_size_kb: float = float(config.get("min_image_size_kb", 2))
         self.scroll_pause_time: float = float(config.get("scroll_pause_time", 7))
         self.max_scrolls: int = int(config.get("max_scrolls", 3))
-        self.chrome_args: List[str] = config.get("chrome_args", ["--window-size=1400,1000", "--no-sandbox", "--disable-dev-shm-usage", "--headless"]) or []
+        self.chrome_args: List[str] = (
+            config.get(
+                "chrome_args",
+                [
+                    "--window-size=1400,1000",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--headless",
+                ],
+            )
+            or []
+        )
         self.output_dir: str = config.get("output_dir", ".")
 
         os.makedirs(self.output_dir, exist_ok=True)
@@ -42,7 +53,9 @@ class VKParser:
             options.add_argument(a)
         options.add_experimental_option("detach", True)
 
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        self.driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()), options=options
+        )
 
     # utils
     def is_valid_text(self, txt: Optional[str]) -> bool:
@@ -53,7 +66,7 @@ class VKParser:
         """
         if not txt or len(txt.strip()) < 5:
             return 0
-        cleaned = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', txt)
+        cleaned = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", txt)
         read = re.findall(r'[A-Za-zА-Яа-яЁё0-9\s.,!?;:«»"\'()\-–…]', cleaned)
         return (len(read) / max(len(cleaned), 1)) > 0.7
 
@@ -140,7 +153,10 @@ class VKParser:
 
         time.sleep(1)
 
-        post_elems = self.driver.find_elements(By.CSS_SELECTOR, "#page_wall_posts div[data-post-id], #page_wall_posts div[id^='post-'], div[id^='post-']")
+        post_elems = self.driver.find_elements(
+            By.CSS_SELECTOR,
+            "#page_wall_posts div[data-post-id], #page_wall_posts div[id^='post-'], div[id^='post-']",
+        )
 
         for el in post_elems:
             try:
@@ -152,16 +168,24 @@ class VKParser:
                     ".vkitTextClamp__root--8Ttiw",
                     ".vkitPostText__root--otCAj",
                     ".wall_post_text",
-                    '[data-testid^="showmoretext"]'
+                    '[data-testid^="showmoretext"]',
                 ]
                 for sel in selectors:
                     sub = el.find_elements(By.CSS_SELECTOR, sel)
                     if sub:
-                        txt = sub[0].get_attribute("innerText") or sub[0].get_attribute("textContent") or ""
+                        txt = (
+                            sub[0].get_attribute("innerText")
+                            or sub[0].get_attribute("textContent")
+                            or ""
+                        )
                         if txt and txt.strip():
                             break
                 if not txt or not txt.strip():
-                    txt = el.get_attribute("innerText") or el.get_attribute("textContent") or ""
+                    txt = (
+                        el.get_attribute("innerText")
+                        or el.get_attribute("textContent")
+                        or ""
+                    )
 
                 if not self.is_valid_text(txt):
                     fixed = self.try_fix_encoding(txt)
@@ -176,7 +200,11 @@ class VKParser:
                     cls = img_el.get_attribute("class") or ""
                     if "AvatarRich" in cls or "post_field_user_image" in cls:
                         continue
-                    src = img_el.get_attribute("src") or img_el.get_attribute("data-src") or img_el.get_attribute("data-lazy-src")
+                    src = (
+                        img_el.get_attribute("src")
+                        or img_el.get_attribute("data-src")
+                        or img_el.get_attribute("data-lazy-src")
+                    )
                     if not src:
                         continue
                     if src.startswith("//"):
@@ -212,17 +240,19 @@ class VKParser:
                 else:
                     downloaded.append(main_img)
 
-                post_data.append({
-                    "post_id": pid,
-                    "text": txt.strip(),
-                    "image_name": filename,
-                    "image_link": main_img,
-                    "description": txt.strip(),
-                    "width": dimensions.get("width") if dimensions else None,
-                    "height": dimensions.get("height") if dimensions else None,
-                    "image_size_kb": round(size_kb, 1),
-                    "downloaded_images": downloaded
-                })
+                post_data.append(
+                    {
+                        "post_id": pid,
+                        "text": txt.strip(),
+                        "image_name": filename,
+                        "image_link": main_img,
+                        "description": txt.strip(),
+                        "width": dimensions.get("width") if dimensions else None,
+                        "height": dimensions.get("height") if dimensions else None,
+                        "image_size_kb": round(size_kb, 1),
+                        "downloaded_images": downloaded,
+                    }
+                )
 
             except Exception:
                 continue
@@ -233,7 +263,9 @@ class VKParser:
         """Прокручивает текущую страницу вниз, пока не достигнет конца или не превысит max_scrolls."""
         last_h = self.driver.execute_script("return document.body.scrollHeight")
         for i in range(self.max_scrolls):
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            self.driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);"
+            )
             time.sleep(self.scroll_pause_time)
             new_h = self.driver.execute_script("return document.body.scrollHeight")
             if new_h == last_h:
@@ -245,7 +277,7 @@ class VKParser:
     def process_community(self, url: str):
         """Открывает сообщество по URL, прокручивает страницу, собирает посты и сохраняет JSON."""
         print(f"=== {url} ===")
-        community_raw = url.rstrip('/').split('/')[-1] or url
+        community_raw = url.rstrip("/").split("/")[-1] or url
         pub_name = self.safe_name(community_raw)
 
         images_dir = os.path.join(self.output_dir, f"images_{pub_name}")
@@ -276,7 +308,9 @@ class VKParser:
                 with open(post_json_path, "w", encoding="utf-8") as f:
                     json.dump(post, f, ensure_ascii=False, indent=2)
 
-            print(f"Сохранено {len(post_data)} постов в {json_dir} и картинки в {images_dir}")
+            print(
+                f"Сохранено {len(post_data)} постов в {json_dir} и картинки в {images_dir}"
+            )
 
         except Exception as e:
             print(f"Ошибка при обработке {url}: {e}")
@@ -299,11 +333,15 @@ class VKParser:
         print("Done")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cfg = {
-        "urls": ["https://vk.com/poiskmemow", "https://vk.com/textmeme"],
+        "urls": [
+            "https://vk.com/poiskmemow",
+            "https://vk.com/textmeme",
+            "https://vk.com/memedescriptions",
+            "https://vk.com/badtextmeme",
+        ],
         "max_scrolls": 3000,
     }
-    parser = VKParser(cfg)
+    parser = VK(cfg)
     parser.run()
-

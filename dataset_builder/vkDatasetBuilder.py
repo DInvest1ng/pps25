@@ -19,6 +19,7 @@ import pandas as pd
 
 try:
     from PIL import Image
+
     PIL_AVAILABLE = True
 except Exception:
     PIL_AVAILABLE = False
@@ -49,7 +50,9 @@ class VKDatasetBuilder:
         text = re.sub(r"\s{2,}", " ", text)
         return text.strip()
 
-    def find_image_file(self, image_name: Optional[str], post_id: Optional[str]) -> Optional[Path]:
+    def find_image_file(
+        self, image_name: Optional[str], post_id: Optional[str]
+    ) -> Optional[Path]:
         """Поиск изображения в директории"""
         if image_name:
             p = self.images_dir / image_name
@@ -82,11 +85,15 @@ class VKDatasetBuilder:
         except Exception:
             return None, None
 
-    def normalize_item(self, item: Dict[str, Any], json_path_stem: Optional[str]) -> Dict[str, Any]:
+    def normalize_item(
+        self, item: Dict[str, Any], json_path_stem: Optional[str]
+    ) -> Dict[str, Any]:
         """Получение данных из json-файла, сбор данных."""
         post_id = str(item.get("post_id") or item.get("id") or json_path_stem or "")
         image_name = item.get("image_name") or item.get("image") or item.get("filename")
-        description = self.clean_description((item.get("description") or item.get("text") or "").strip())
+        description = self.clean_description(
+            (item.get("description") or item.get("text") or "").strip()
+        )
         width = item.get("width")
         height = item.get("height")
         image_link = item.get("image_link") or item.get("main_img") or ""
@@ -95,7 +102,7 @@ class VKDatasetBuilder:
         image_b64 = ""
         if image_file and image_file.exists():
             image_b64 = self.encode_image_to_base64(image_file)
-            if (width is None or height is None):
+            if width is None or height is None:
                 w, h = self.get_size_from_image(image_file)
                 if w and h:
                     width = width or w
@@ -106,7 +113,7 @@ class VKDatasetBuilder:
             "description": description,
             "width": width if width is not None else "",
             "height": height if height is not None else "",
-            "image_link": image_link
+            "image_link": image_link,
         }
 
     def process_json_file(self, json_path: Path) -> List[Dict[str, Any]]:
@@ -151,7 +158,7 @@ def main():
     parser.add_argument("--jsons_dir", required=True, help="Path to jsons_{pub_name}")
     parser.add_argument("--out", default="dataset.csv", help="Output CSV file")
     cfg = parser.parse_args()
-    
+
     builder = VKDatasetBuilder(cfg)
     builder.build()
 

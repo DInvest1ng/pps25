@@ -5,10 +5,11 @@ from dotenv import load_dotenv
 from urllib import parse
 from bs4 import BeautifulSoup
 
+
 load_dotenv()
 
 
-class MEM_PARS:
+class MEMEXPERT:
     def __init__(self):
         self.client = httpx.Client(
             timeout=httpx.Timeout(connect=5.0, read=30.0, write=5.0, pool=5.0)
@@ -77,5 +78,11 @@ class MEM_PARS:
 
 
 if __name__ == "__main__":
-    parser = MEM_PARS()
-    parser.save_bio(parser.get_links("че блэт"))
+    mem = MEMEXPERT()
+
+    with open("ru_50k.txt", "r") as f:
+        for line in f.readlines():
+            try:
+                mem.save_bio(mem.get_links(line.split(" ")))
+            except:
+                pass
