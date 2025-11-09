@@ -1,61 +1,54 @@
-"""
-Заглушка модели для разработки.
-
-Предоставляет объект `model` и функцию `get_model()` с минимальным интерфейсом,
-который ожидает `src/services/vector_search.VectorSearchEngine`:
-
-- model.encode_texts(texts: List[str]) -> np.ndarray (n, dim)
-- model.get_sentence_embedding_dimension() -> int
-
-Эта заглушка детерминирована (одно и то же входное слово -> одинаковый вектор)
-и НЕ предназначена для использования в продакшне.
-"""
-
-from typing import List
-import hashlib
+import torch
 import numpy as np
+from typing import List, Union
+from transformers import CLIPModel, AutoTokenizer, AutoProcessor
+from PIL.Image import Image
 
-DIM = 384
+class CLIPVectorizer:
+    def __init__(self, model_name: str = "openai/clip-vit-base-patch32", device: Union[str, None] = None):
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = CLIPModel.from_pretrained(model_name).to(self.device)
+        self.model.eval()
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.processor = AutoProcessor.from_pretrained(model_name, use_fast=True)
 
-class DummyModel:
-    def __init__(self, dim: int = DIM):
-        self._dim = dim
+    def _batched(self, items, batch_size):
+        for i in range(0, len(items), batch_size):
+            yield items[i : i + batch_size]
 
-    def get_sentence_embedding_dimension(self) -> int:
-        return self._dim
+    def encode_text(self, texts: Union[str, List[str]], batch_size: int = 64, normalize: bool = True) -> np.ndarray:
+        if isinstance(texts, str):
+            texts = [texts]
+        features_list = []
+        with torch.inference_mode():
+            for batch in self._batched(texts, batch_size):
+                inputs = self.tokenizer(batch, padding=True, truncation=True, return_tensors="pt").to(self.device)
+                feats = self.model.get_text_features(**inputs)
+                if normalize:
+                    feats = torch.nn.functional.normalize(feats, p=2, dim=1)
+                features_list.append(feats.cpu().float().numpy())
+        return np.vstack(features_list)
 
-    def encode_texts(self, texts: List[str]) -> np.ndarray:
-        """Детерминированно преобразует список строк в L2-нормализованные векторы.
+    def encode_image(self, images: Union[Image, List[Image]], batch_size: int = 32, normalize: bool = True) -> np.ndarray:
+        single = False
+        if isinstance(images, Image):
+            images = [images]
+            single = True
+        features_list = []
+        with torch.inference_mode():
+            for batch in self._batched(images, batch_size):
+                inputs = self.processor(images=batch, return_tensors="pt").to(self.device)
+                feats = self.model.get_image_features(**inputs)
+                if normalize:
+                    feats = torch.nn.functional.normalize(feats, p=2, dim=1)
+                features_list.append(feats.cpu().float().numpy())
+        return np.vstack(features_list)
 
-        Метод использует SHA-256 хеширование каждой строки с индексом
-        вектора для получения псевдослучайных чисел — гарантия детерминизма
-        при разработке/тестировании.
-        """
-        out = np.zeros((len(texts), self._dim), dtype=np.float32)
-        for i, t in enumerate(texts):
-            # формируем значения поэлементно из хеша
-            for j in range(self._dim):
-                data = hashlib.sha256(f"{t}||{j}".encode("utf-8")).digest()
-                # берем первые 4 байта как uint32 и нормируем в [0,1)
-                val = int.from_bytes(data[:4], "big") / 2**32
-                out[i, j] = float(val)
-        # L2-нормализация
-        norms = np.linalg.norm(out, axis=1, keepdims=True)
-        norms[norms == 0] = 1.0
-        out = out / norms
-        return out
+if __name__ == "__main__":
+    from PIL import Image
+    import io
 
-    def encode_images(self, images: List[object]) -> np.ndarray:
-        """Опциональная реализация: возвращаем нулевые векторы.
-        Если нужна реальная поддержка изображений — заменить на подходящую реализацию.
-        """
-        return np.zeros((len(images), self._dim), dtype=np.float32)
-
-
-# Экземпляр модели по умолчанию (импортируется как `from src.model.model import model`)
-model = DummyModel()
-
-
-def get_model() -> DummyModel:
-    """Возвращает модель (совместимо с импорта get_model в сервисе)."""
-    return model
+    vec = CLIPVectorizer()
+    texts = ["a photo of a cat", "a photo of a dog"]
+    text_embeddings = vec.encode_text(texts)
+    print("text embeddings shape:", text_embeddings.shape)
