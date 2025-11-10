@@ -14,8 +14,8 @@ class VectorSearch:
         self,
         model_name: str = "openai/clip-vit-base-patch32",
         device = None,
-        index_path: str = "faiss_index.bin",
-        id_map_path: str = "id_map.npy",
+        index_path: str = "data/faiss_index.bin",
+        id_map_path: str = "data/id_map.npy",
     ):
         self.model = CLIPVectorizer(model_name=model_name, device=device)
         self.index_path = index_path
@@ -60,7 +60,7 @@ class VectorSearch:
 
         self.save_index()
 
-    async def search(self, session: AsyncSession, query_text: str, top_k: int = 10) -> List[int]:
+    async def search(self, session: AsyncSession, query_text: str, top_k: int = 30) -> List[int]:
         if self.index is None or self.id_map is None:
             print("Index not loaded — building from DB...")
             await self.build_index(session)

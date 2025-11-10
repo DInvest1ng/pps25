@@ -15,8 +15,8 @@ from transformers.image_utils import load_image
 from PIL import Image as PILImage
 
 BATCH_SIZE = int(os.getenv("BUILD_BATCH_SIZE", "256"))
-INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "faiss_index.bin")
-ID_MAP_PATH = os.getenv("ID_MAP_PATH", "id_map.npy")
+INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "data/faiss_index.bin")
+ID_MAP_PATH = os.getenv("ID_MAP_PATH", "data/id_map.npy")
 PREFER_IMAGE = os.getenv("PREFER_IMAGE", "1") == "1"
 
 def try_load_image(key: str) -> Optional[PILImage.Image]:
